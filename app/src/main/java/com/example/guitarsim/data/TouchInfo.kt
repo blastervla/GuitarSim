@@ -5,6 +5,7 @@ import kotlin.math.max
 class TouchInfo(
     var x: Float,
     var y: Float,
+    var verticalStretching: Float,
     var size: Float // Check if can add rotation
 ) {
     val FINGER_HEIGHT = 100

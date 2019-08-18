@@ -1,16 +1,30 @@
 package com.example.guitarsim
 
+import android.content.Context
+import android.content.Intent
+import android.hardware.SensorManager
 import android.os.Bundle
 import android.view.MotionEvent
 import android.view.View
+import android.widget.FrameLayout
+import androidx.core.content.ContextCompat
 import com.example.guitarsim.data.TouchInfo
-import com.example.guitarsim.utils.load
-import com.example.guitarsim.utils.then
+import com.example.guitarsim.utils.*
 import kotlinx.android.synthetic.main.activity_main.*
 import java.util.concurrent.ConcurrentLinkedQueue
 import kotlin.math.abs
 
 class MainActivity : FullscreenActivity() {
+
+    companion object {
+        const val TIEMPO_MUESTREO_MILLIS: Long = 5
+    }
+
+    val scaleLengthMm: Double
+        get() = SharedPrefsUtils(this).getScaleLength().toDouble()
+
+    val fretAmount: Int
+        get() = SharedPrefsUtils(this).getFretAmount()
 
     val lastSizes = hashMapOf<Int, Float>()
     val lastJitters = ConcurrentLinkedQueue<Float>()
@@ -18,14 +32,44 @@ class MainActivity : FullscreenActivity() {
     var cejillaPointers = listOf<Int>()
     var nonCejillaCount = 0
 
+    /* var */ val viewPortBeginPx: Int
+        get() = ViewUtils.mmToPx(SharedPrefsUtils(this).getViewportLocation().toDouble()) // TODO: Make dynamic
+    val viewPortEndPx: Int
+        get() = viewPortBeginPx + ViewUtils.getScreenHeight(this)
+    val guitarScalePx
+        get() = ViewUtils.mmToPx(scaleLengthMm)
+
+    val guitarUtils by lazy { GuitarUtils(scaleLengthMm, fretAmount) }
+
+    var shakeDetector: ShakeDetector? = null
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+        setShakeRecognizer()
+    }
+
+    private fun setShakeRecognizer() {
+        shakeDetector = ShakeDetector(getSystemService(Context.SENSOR_SERVICE) as SensorManager) {
+            //            Toast.makeText(this, "Accel: ${shakeDetector?.mAccel}", Toast.LENGTH_SHORT).show()
+            startActivity(Intent(this, SettingsActivity::class.java))
+        }
     }
 
     override fun onStart() {
         super.onStart()
         updateView()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        shakeDetector?.resume()
+        setFreats()
+    }
+
+    override fun onPause() {
+        super.onPause()
+        shakeDetector?.pause()
     }
 
     private fun updateView() {
@@ -60,7 +104,7 @@ class MainActivity : FullscreenActivity() {
         testText.visibility = if (testText.text.isNotBlank()) View.VISIBLE else View.GONE
 
         load {
-            Thread.sleep(5)
+            Thread.sleep(TIEMPO_MUESTREO_MILLIS)
         }.then {
             updateView()
         }
@@ -86,6 +130,8 @@ class MainActivity : FullscreenActivity() {
             val pointerId = event.getPointerId(i)
             if (touchView.touches.containsKey(pointerId)) {
                 touchView.touches[pointerId]?.apply {
+                    // Es vertical, pero recordemos que vertical para nosotros es horizontal para el celu
+                    verticalStretching += event.getX(i) - x // TODO: Definir si + es para abajo y - es para arriba (quizás hay que cambiar el signo)
                     x = event.getX(i)
                     y = event.getY(i)
                     size = event.getSize(i)
@@ -93,6 +139,7 @@ class MainActivity : FullscreenActivity() {
                 }
             } else {
                 touchView.touches[pointerId] = TouchInfo(
+                    verticalStretching = 0f,
                     x = event.getX(i),
                     y = event.getY(i),
                     size = event.getSize(i)
@@ -210,5 +257,27 @@ class MainActivity : FullscreenActivity() {
         val xLocation = location.first()
 
         return xLocation.toFloat() in (touch.startX..touch.endX) || (xLocation.toFloat() + view.width) in (touch.startX..touch.endX)
+    }
+
+    private fun setFreats() {
+        GuitarUtils(scaleLengthMm, fretAmount)
+        val fretsToShow = guitarUtils.fretsInViewport(viewPortBeginPx, viewPortEndPx)
+
+        fretContainer.removeAllViews()
+
+        fretsToShow.forEach { fretLocation ->
+            val fretView = View(this).apply {
+                // TODO: Pasar 12 a dimens
+                layoutParams = FrameLayout.LayoutParams(
+                    FrameLayout.LayoutParams.MATCH_PARENT,
+                    resources.getDimensionPixelSize(R.dimen.fret_width)
+                ).apply {
+                    topMargin = fretLocation - viewPortBeginPx
+                }
+                setBackgroundColor(ContextCompat.getColor(this@MainActivity, R.color.fretColor))
+            }
+
+            fretContainer.addView(fretView)
+        }
     }
 }

@@ -7,86 +7,91 @@
     android:background="@drawable/wood"
     tools:context=".MainActivity">
 
-    <LinearLayout
+    <!--<LinearLayout-->
+    <!--android:layout_width="match_parent"-->
+    <!--android:layout_height="match_parent"-->
+    <!--android:orientation="vertical">-->
+
+    <!--<FrameLayout-->
+    <!--android:layout_width="match_parent"-->
+    <!--android:layout_height="0dp"-->
+    <!--android:layout_weight="0.4">-->
+
+    <!--<View-->
+    <!--android:layout_width="match_parent"-->
+    <!--android:layout_height="12dp"-->
+    <!--android:background="#B3ABAF"-->
+    <!--app:layout_constraintEnd_toEndOf="parent"-->
+    <!--app:layout_constraintStart_toEndOf="@id/bString" />-->
+
+    <!--</FrameLayout>-->
+
+    <!--<FrameLayout-->
+    <!--android:layout_width="match_parent"-->
+    <!--android:layout_height="0dp"-->
+    <!--android:layout_weight="1">-->
+
+    <!--<View-->
+    <!--android:layout_width="match_parent"-->
+    <!--android:layout_height="12dp"-->
+    <!--android:layout_gravity="center"-->
+    <!--android:background="#B3ABAF"-->
+    <!--app:layout_constraintEnd_toEndOf="parent"-->
+    <!--app:layout_constraintStart_toEndOf="@id/bString" />-->
+
+    <!--</FrameLayout>-->
+
+    <!--<FrameLayout-->
+    <!--android:layout_width="match_parent"-->
+    <!--android:layout_height="0dp"-->
+    <!--android:layout_weight="1">-->
+
+    <!--<View-->
+    <!--android:layout_width="match_parent"-->
+    <!--android:layout_height="12dp"-->
+    <!--android:layout_gravity="center"-->
+    <!--android:background="#B3ABAF"-->
+    <!--app:layout_constraintEnd_toEndOf="parent"-->
+    <!--app:layout_constraintStart_toEndOf="@id/bString" />-->
+
+    <!--</FrameLayout>-->
+
+    <!--<FrameLayout-->
+    <!--android:layout_width="match_parent"-->
+    <!--android:layout_height="0dp"-->
+    <!--android:layout_weight="1">-->
+
+    <!--<View-->
+    <!--android:layout_width="match_parent"-->
+    <!--android:layout_height="12dp"-->
+    <!--android:layout_gravity="center"-->
+    <!--android:background="#B3ABAF"-->
+    <!--app:layout_constraintEnd_toEndOf="parent"-->
+    <!--app:layout_constraintStart_toEndOf="@id/bString" />-->
+
+    <!--</FrameLayout>-->
+
+    <!--<FrameLayout-->
+    <!--android:layout_width="match_parent"-->
+    <!--android:layout_height="0dp"-->
+    <!--android:layout_weight="0.4">-->
+
+    <!--<View-->
+    <!--android:layout_width="match_parent"-->
+    <!--android:layout_height="12dp"-->
+    <!--android:layout_gravity="bottom"-->
+    <!--android:background="#B3ABAF"-->
+    <!--app:layout_constraintEnd_toEndOf="parent"-->
+    <!--app:layout_constraintStart_toEndOf="@id/bString" />-->
+
+    <!--</FrameLayout>-->
+
+    <!--</LinearLayout>-->
+
+    <FrameLayout
+        android:id="@+id/fretContainer"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:orientation="vertical">
-
-        <FrameLayout
-            android:layout_width="match_parent"
-            android:layout_height="0dp"
-            android:layout_weight="0.4">
-
-            <View
-                android:layout_width="match_parent"
-                android:layout_height="12dp"
-                android:background="#B3ABAF"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintStart_toEndOf="@id/bString" />
-
-        </FrameLayout>
-
-        <FrameLayout
-            android:layout_width="match_parent"
-            android:layout_height="0dp"
-            android:layout_weight="1">
-
-            <View
-                android:layout_width="match_parent"
-                android:layout_height="12dp"
-                android:layout_gravity="center"
-                android:background="#B3ABAF"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintStart_toEndOf="@id/bString" />
-
-        </FrameLayout>
-
-        <FrameLayout
-            android:layout_width="match_parent"
-            android:layout_height="0dp"
-            android:layout_weight="1">
-
-            <View
-                android:layout_width="match_parent"
-                android:layout_height="12dp"
-                android:layout_gravity="center"
-                android:background="#B3ABAF"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintStart_toEndOf="@id/bString" />
-
-        </FrameLayout>
-
-        <FrameLayout
-            android:layout_width="match_parent"
-            android:layout_height="0dp"
-            android:layout_weight="1">
-
-            <View
-                android:layout_width="match_parent"
-                android:layout_height="12dp"
-                android:layout_gravity="center"
-                android:background="#B3ABAF"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintStart_toEndOf="@id/bString" />
-
-        </FrameLayout>
-
-        <FrameLayout
-            android:layout_width="match_parent"
-            android:layout_height="0dp"
-            android:layout_weight="0.4">
-
-            <View
-                android:layout_width="match_parent"
-                android:layout_height="12dp"
-                android:layout_gravity="bottom"
-                android:background="#B3ABAF"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintStart_toEndOf="@id/bString" />
-
-        </FrameLayout>
-
-    </LinearLayout>
+        android:layout_height="match_parent" />
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -101,10 +106,10 @@
 
             <View
                 android:id="@+id/eMString"
-                android:layout_width="14dp"
+                android:layout_width="11dp"
                 android:layout_height="match_parent"
                 android:layout_gravity="center"
-                android:background="#999999"
+                android:background="#888888"
                 app:layout_constraintEnd_toStartOf="@id/aString"
                 app:layout_constraintStart_toStartOf="parent" />
 
@@ -117,10 +122,10 @@
 
             <View
                 android:id="@+id/aString"
-                android:layout_width="12dp"
+                android:layout_width="10dp"
                 android:layout_height="match_parent"
                 android:layout_gravity="center"
-                android:background="#999999"
+                android:background="#888888"
                 app:layout_constraintEnd_toStartOf="@id/dString"
                 app:layout_constraintStart_toEndOf="@id/eMString" />
 
@@ -133,10 +138,10 @@
 
             <View
                 android:id="@+id/dString"
-                android:layout_width="10dp"
+                android:layout_width="9dp"
                 android:layout_height="match_parent"
                 android:layout_gravity="center"
-                android:background="#999999"
+                android:background="#888888"
                 app:layout_constraintEnd_toStartOf="@id/gString"
                 app:layout_constraintStart_toEndOf="@id/aString" />
 
@@ -152,7 +157,7 @@
                 android:layout_width="8dp"
                 android:layout_height="match_parent"
                 android:layout_gravity="center"
-                android:background="#999999"
+                android:background="#888888"
                 app:layout_constraintEnd_toStartOf="@id/bString"
                 app:layout_constraintStart_toEndOf="@id/dString" />
 
@@ -165,10 +170,10 @@
 
             <View
                 android:id="@+id/bString"
-                android:layout_width="6dp"
+                android:layout_width="7dp"
                 android:layout_height="match_parent"
                 android:layout_gravity="center"
-                android:background="#999999"
+                android:background="#888888"
                 app:layout_constraintEnd_toStartOf="@id/emString"
                 app:layout_constraintStart_toEndOf="@id/bString" />
 
@@ -181,10 +186,10 @@
 
             <View
                 android:id="@+id/emString"
-                android:layout_width="4dp"
+                android:layout_width="6dp"
                 android:layout_height="match_parent"
                 android:layout_gravity="center"
-                android:background="#999999"
+                android:background="#888888"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toEndOf="@id/bString" />
 
@@ -204,8 +209,8 @@
         android:layout_marginStart="10dp"
         android:layout_marginTop="10dp"
         android:background="#66666666"
-        android:visibility="gone"
         android:textColor="@android:color/white"
-        android:textSize="18sp" />
+        android:textSize="18sp"
+        android:visibility="gone" />
 
 </FrameLayout>
