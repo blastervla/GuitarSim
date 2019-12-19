@@ -7,14 +7,18 @@ import android.os.Bundle
 import android.view.MotionEvent
 import android.view.View
 import android.widget.FrameLayout
+import android.widget.Toast
 import androidx.core.content.ContextCompat
+import com.example.guitarsim.connectivity.AOABridge
+import com.example.guitarsim.connectivity.AOAManager2
+import com.example.guitarsim.connectivity.Buffer
 import com.example.guitarsim.data.TouchInfo
 import com.example.guitarsim.utils.*
 import kotlinx.android.synthetic.main.activity_main.*
 import java.util.concurrent.ConcurrentLinkedQueue
 import kotlin.math.abs
 
-class MainActivity : FullscreenActivity() {
+class MainActivity : FullscreenActivity(), AOABridge.Listener {
 
     companion object {
         const val TIEMPO_MUESTREO_MILLIS: Long = 5
@@ -43,10 +47,16 @@ class MainActivity : FullscreenActivity() {
 
     var shakeDetector: ShakeDetector? = null
 
+    var aoaBridge: AOABridge? = null
+//    var aoaBridge: AOAManager2? = null
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
         setShakeRecognizer()
+        aoaBridge = AOABridge(this, this)
+//        aoaBridge = AOAManager2(this, intent)
+//        aoaBridge?.startListening()
     }
 
     private fun setShakeRecognizer() {
@@ -280,4 +290,26 @@ class MainActivity : FullscreenActivity() {
             fretContainer.addView(fretView)
         }
     }
+
+    /* ================= AOABridge Listener ================= */
+    override fun onAoabRead(bufferHolder: Buffer?) {
+        try {
+            val value = Integer.parseInt(bufferHolder.toString())
+            bufferHolder?.buffer?.int
+            runOnUiThread {
+                Toast.makeText(this, bufferHolder?.buffer?.int ?: -1, Toast.LENGTH_SHORT).show()
+            }
+        } catch (exception: NumberFormatException) {
+            return
+        }
+
+//        if (mAoab != null) {
+//            mAoab.write(bufferHolder)
+//        }
+    }
+
+    override fun onAoabShutdown() {
+        runOnUiThread { finish() }
+    }
+
 }
