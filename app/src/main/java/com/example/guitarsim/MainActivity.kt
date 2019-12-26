@@ -3,22 +3,26 @@ package com.example.guitarsim
 import android.content.Context
 import android.content.Intent
 import android.hardware.SensorManager
+import android.hardware.usb.UsbAccessory
+import android.hardware.usb.UsbManager
 import android.os.Bundle
+import android.util.Log
 import android.view.MotionEvent
 import android.view.View
 import android.widget.FrameLayout
-import android.widget.Toast
 import androidx.core.content.ContextCompat
-import com.example.guitarsim.connectivity.AOABridge
-import com.example.guitarsim.connectivity.AOAManager2
-import com.example.guitarsim.connectivity.Buffer
+import com.example.guitarsim.connectivity.working.AOAManager
 import com.example.guitarsim.data.TouchInfo
 import com.example.guitarsim.utils.*
 import kotlinx.android.synthetic.main.activity_main.*
+import java.nio.ByteBuffer
+import java.nio.ByteOrder
 import java.util.concurrent.ConcurrentLinkedQueue
 import kotlin.math.abs
+import kotlin.math.floor
+import kotlin.math.round
 
-class MainActivity : FullscreenActivity(), AOABridge.Listener {
+class MainActivity : FullscreenActivity() {
 
     companion object {
         const val TIEMPO_MUESTREO_MILLIS: Long = 5
@@ -29,6 +33,9 @@ class MainActivity : FullscreenActivity(), AOABridge.Listener {
 
     val fretAmount: Int
         get() = SharedPrefsUtils(this).getFretAmount()
+
+    val nodeAmount: Int
+        get() = SharedPrefsUtils(this).getNodeAmount()
 
     val lastSizes = hashMapOf<Int, Float>()
     val lastJitters = ConcurrentLinkedQueue<Float>()
@@ -47,14 +54,15 @@ class MainActivity : FullscreenActivity(), AOABridge.Listener {
 
     var shakeDetector: ShakeDetector? = null
 
-    var aoaBridge: AOABridge? = null
-//    var aoaBridge: AOAManager2? = null
+    private lateinit var aoaManager: AOAManager
+    private var isInForeground = true
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
         setShakeRecognizer()
-        aoaBridge = AOABridge(this, this)
+        initUsbConnection()
+
 //        aoaBridge = AOAManager2(this, intent)
 //        aoaBridge?.startListening()
     }
@@ -66,6 +74,19 @@ class MainActivity : FullscreenActivity(), AOABridge.Listener {
         }
     }
 
+    private fun initUsbConnection() {
+        val usbManager = getSystemService(Context.USB_SERVICE) as UsbManager
+        var usbAccessory: UsbAccessory? = null
+
+        val intent = intent
+        if (UsbManager.ACTION_USB_ACCESSORY_ATTACHED == intent.action) {
+            usbAccessory = intent.getParcelableExtra(UsbManager.EXTRA_ACCESSORY)
+        }
+
+        aoaManager = AOAManager(usbManager, usbAccessory)
+        aoaManager.connect()
+    }
+
     override fun onStart() {
         super.onStart()
         updateView()
@@ -74,12 +95,19 @@ class MainActivity : FullscreenActivity(), AOABridge.Listener {
     override fun onResume() {
         super.onResume()
         shakeDetector?.resume()
-        setFreats()
+        isInForeground = true
+        setFrets()
     }
 
     override fun onPause() {
         super.onPause()
         shakeDetector?.pause()
+        isInForeground = false
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        aoaManager.disconnect()
     }
 
     private fun updateView() {
@@ -113,6 +141,8 @@ class MainActivity : FullscreenActivity(), AOABridge.Listener {
 
         testText.visibility = if (testText.text.isNotBlank()) View.VISIBLE else View.GONE
 
+        handleUsbConnection()
+
         load {
             Thread.sleep(TIEMPO_MUESTREO_MILLIS)
         }.then {
@@ -123,7 +153,7 @@ class MainActivity : FullscreenActivity(), AOABridge.Listener {
     override fun onTouchEvent(event: MotionEvent): Boolean {
         val action = event.actionMasked
         if (action == MotionEvent.ACTION_POINTER_UP || action == MotionEvent.ACTION_CANCEL) {
-            touchView.touches.remove(event.getPointerId(event.actionIndex))
+            touchView.removeTouch(event.getPointerId(event.actionIndex))
 
             if (touchView.touches.isEmpty()) {
                 // Then clear cejilla calculations
@@ -133,28 +163,37 @@ class MainActivity : FullscreenActivity(), AOABridge.Listener {
 
         // Clean removed touches
         ArrayList(touchView.touches.filter { event.findPointerIndex(it.key) == -1 }.map { it.key }).forEach {
-            touchView.touches.remove(it)
+            touchView.removeTouch(it)
         }
 
         for (i in 0 until event.pointerCount) {
             val pointerId = event.getPointerId(i)
             if (touchView.touches.containsKey(pointerId)) {
                 touchView.touches[pointerId]?.apply {
-                    // Es vertical, pero recordemos que vertical para nosotros es horizontal para el celu
-                    verticalStretching += event.getX(i) - x // TODO: Definir si + es para abajo y - es para arriba (quizás hay que cambiar el signo)
                     x = event.getX(i)
                     y = event.getY(i)
+
+                    // Es vertical, pero recordemos que vertical para nosotros es horizontal para el celu
+                    verticalStretching += event.getX(i) - x // TODO: Definir si + es para abajo y - es para arriba (quizás hay que cambiar el signo)
+
+                    pressure = event.getPressure(i)
                     size = event.getSize(i)
-                    // Add pressure too
                 }
             } else {
                 touchView.touches[pointerId] = TouchInfo(
-                    verticalStretching = 0f,
                     x = event.getX(i),
                     y = event.getY(i),
+                    verticalStretching = 0f,
+                    pressure = event.getPressure(i),
                     size = event.getSize(i)
                 )
             }
+            /*touchView.touches[pointerId]?.let {
+                Log.v(
+                    "GuitarSim", "verticalStretching = ${it.verticalStretching}\npressure = ${event.pressure}\n" +
+                            "size = ${event.size}"
+                )
+            }*/
             /*testText.text =
                 "(${event.getX(i)}, ${event.getY(i)})\n\nSize: ${event.getSize(i)}\nPressure: ${event.getPressure(i)}\nOrientation: ${event.getOrientation(
                     i
@@ -269,7 +308,7 @@ class MainActivity : FullscreenActivity(), AOABridge.Listener {
         return xLocation.toFloat() in (touch.startX..touch.endX) || (xLocation.toFloat() + view.width) in (touch.startX..touch.endX)
     }
 
-    private fun setFreats() {
+    private fun setFrets() {
         GuitarUtils(scaleLengthMm, fretAmount)
         val fretsToShow = guitarUtils.fretsInViewport(viewPortBeginPx, viewPortEndPx)
 
@@ -291,25 +330,55 @@ class MainActivity : FullscreenActivity(), AOABridge.Listener {
         }
     }
 
-    /* ================= AOABridge Listener ================= */
-    override fun onAoabRead(bufferHolder: Buffer?) {
-        try {
-            val value = Integer.parseInt(bufferHolder.toString())
-            bufferHolder?.buffer?.int
-            runOnUiThread {
-                Toast.makeText(this, bufferHolder?.buffer?.int ?: -1, Toast.LENGTH_SHORT).show()
-            }
-        } catch (exception: NumberFormatException) {
-            return
-        }
-
-//        if (mAoab != null) {
-//            mAoab.write(bufferHolder)
+    /* =============== USB Connection Handler =============== */
+//    override fun run() {
+//        while (isInForeground) {
+//
 //        }
-    }
+//    }
+    private fun handleUsbConnection() {
+        val buff = ByteBuffer.allocate(24 * touchView.touches.size + 8 * touchView.removedTouches.size)
+        buff.order(ByteOrder.LITTLE_ENDIAN)
 
-    override fun onAoabShutdown() {
-        runOnUiThread { finish() }
-    }
+        // Remove old touches
+        for (touchId in touchView.removedTouches) {
+            buff.putInt(0x3) // Command: Finger remove
+            buff.putInt(touchId)
 
+            /*try {
+                Thread.sleep(500)
+            } catch (e: InterruptedException) {
+                e.printStackTrace()
+            }*/
+        }
+        touchView.removedTouches.clear()
+
+        // Add new touches
+        for (touchId in touchView.touches.keys) {
+            touchView.touches[touchId]?.let { touch ->
+                buff.putInt(0x2) // Command: Finger update
+                buff.putInt(0)   // isCejilla = false
+                buff.putInt(getNode(touch))
+                buff.putInt(touchId)
+                buff.putInt(floor(touch.verticalStretching).toInt())
+                buff.putInt(floor(touch.pressure * 1000).toInt())
+            }
+        }
+        aoaManager.write(buff.array())
+        /*try {
+            Thread.sleep(500)
+        } catch (e: InterruptedException) {
+            e.printStackTrace()
+        }*/
+    }
+    /* =============== USB Connection Handler =============== */
+
+    fun getNode(touch: TouchInfo): Int {
+        val touchYInViewport = touch.y
+        val touchYInScale = viewPortBeginPx + touchYInViewport
+
+        val scaleLengthPx = ViewUtils.mmToPx(scaleLengthMm)
+
+        return round(touchYInScale * nodeAmount / scaleLengthPx).toInt()
+    }
 }

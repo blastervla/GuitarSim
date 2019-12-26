@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <usb-accessory
-        manufacturer="Google, Inc."
-        model="DemoKit"
-        version="2.0" />
+        manufacturer="Blastervla"
+        model="Guitar Simulator"
+        version="1.0" />
 </resources>

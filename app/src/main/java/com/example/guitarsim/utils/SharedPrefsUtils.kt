@@ -13,6 +13,7 @@ class SharedPrefsUtils(val context: Context) {
         private const val VIEWPORT_LOCATION_KEY = "VIEWPORT_LOCATION"
         private const val SCALE_LENGTH_KEY = "SCALE_SIZE"
         private const val FRET_AMOUNT_KEY = "FRET_AMOUNT"
+        private const val NODE_AMOUNT_KEY = "NODE_AMOUNT"
 
         fun isStoragePermissionGranted(fragment: Fragment): Boolean {
             return if (ActivityCompat.checkSelfPermission(
@@ -57,4 +58,14 @@ class SharedPrefsUtils(val context: Context) {
 
     fun getFretAmount(): Int = context.getSharedPreferences(SHARED_PREFS_FILE, Context.MODE_PRIVATE)
         .getInt(FRET_AMOUNT_KEY, 24)
+
+    fun setNodeAmount(fretAmount: Int) {
+        context.getSharedPreferences(SHARED_PREFS_FILE, Context.MODE_PRIVATE).edit().apply {
+            putInt(NODE_AMOUNT_KEY, fretAmount)
+            apply()
+        }
+    }
+
+    fun getNodeAmount(): Int = context.getSharedPreferences(SHARED_PREFS_FILE, Context.MODE_PRIVATE)
+        .getInt(NODE_AMOUNT_KEY, 400)
 }

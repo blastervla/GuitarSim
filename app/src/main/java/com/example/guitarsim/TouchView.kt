@@ -15,6 +15,7 @@ class TouchView(context: Context, attributes: AttributeSet? = null) : View(conte
      * Map containing each touch Id with its respective touch information
      */
     val touches = hashMapOf<Int, TouchInfo>()
+    val removedTouches = arrayListOf<Int>()
     val tapPaint = Paint().apply {
         style = Paint.Style.FILL
         color = ContextCompat.getColor(context, android.R.color.holo_blue_light)
@@ -29,5 +30,12 @@ class TouchView(context: Context, attributes: AttributeSet? = null) : View(conte
                 canvas.drawOval(it.startX, it.startY, it.endX, it.endY, tapPaint)
             }
         }
+    }
+
+    fun removeTouch(id: Int) {
+        if (!touches.containsKey(id)) return
+
+        touches.remove(id)
+        removedTouches.add(id)
     }
 }
