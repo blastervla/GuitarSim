@@ -177,7 +177,8 @@ class MainActivity : FullscreenActivity() {
                     y = event.getY(i)
 
                     // Es vertical, pero recordemos que vertical para nosotros es horizontal para el celu
-                    verticalStretching = event.getX(i) - x // TODO: Definir si + es para abajo y - es para arriba (quizás hay que cambiar el signo)
+                    verticalStretching =
+                        event.getX(i) - x // TODO: Definir si + es para abajo y - es para arriba (quizás hay que cambiar el signo)
 
                     pressure = event.getPressure(i)
                     size = event.getSize(i)
@@ -340,23 +341,24 @@ class MainActivity : FullscreenActivity() {
 //        }
 //    }
     private fun handleUsbConnection() {
-        val touchesToAdd = touchView.touches.keys.filter { !cejillaPointers.contains(it) && getChord(touchView.touches[it]) != -1 }
+        val touchesToAdd =
+            touchView.touches.keys.filter { !cejillaPointers.contains(it) && getChord(touchView.touches[it]) != -1 }
         val cejillaTouch = cejillaPointers.firstOrNull()
-        val touchesToRemove = touchView.removedTouches
+        val touchesToRemove = arrayListOf<Int>() // touchView.removedTouches
+
+        val bufferSize = 28 * touchesToAdd.size + 8 * touchesToRemove.size + if (cejillaTouch != null) 28 else 0
 
         val buff =
             ByteBuffer.allocate(
-                28 * touchesToAdd.size
-                        + 8 * touchesToRemove.size
-                        + if (cejillaTouch != null) 28 else 0
+                if (bufferSize > 0) bufferSize else 8
             )
         buff.order(ByteOrder.LITTLE_ENDIAN)
 
         // Remove old touches
-        for (touchId in touchesToRemove) {
+        /*for (touchId in touchesToRemove) {
             buff.putInt(0x3) // Command: Finger remove
             buff.putInt(touchId)
-        }
+        }*/
         touchView.removedTouches.clear()
 
         // Add new touches
@@ -385,6 +387,12 @@ class MainActivity : FullscreenActivity() {
                 Log.v("asdf", "Vert stretch: ${touch.verticalStretching}")
             }
         }
+
+        if (bufferSize == 0) {
+            buff.putInt(0x3)
+            buff.putInt(0x0) // Remove all pressess
+        }
+
         aoaManager.write(buff.array())
         /*try {
             Thread.sleep(500)
@@ -407,10 +415,10 @@ class MainActivity : FullscreenActivity() {
         if (touch == null) return -1
 
         if (isTouchingViewOnXAxis(touch, eMString)) return 5
-        if (isTouchingViewOnXAxis(touch, aString )) return 4
-        if (isTouchingViewOnXAxis(touch, dString )) return 3
-        if (isTouchingViewOnXAxis(touch, gString )) return 2
-        if (isTouchingViewOnXAxis(touch, bString )) return 1
+        if (isTouchingViewOnXAxis(touch, aString)) return 4
+        if (isTouchingViewOnXAxis(touch, dString)) return 3
+        if (isTouchingViewOnXAxis(touch, gString)) return 2
+        if (isTouchingViewOnXAxis(touch, bString)) return 1
         if (isTouchingViewOnXAxis(touch, emString)) return 0
         return -1
     }

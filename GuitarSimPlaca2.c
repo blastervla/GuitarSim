@@ -87,6 +87,12 @@ void agregarOActualizarPress(FingerPress *press) {
     free(press);
 }
 
+void clearPresses() {
+    for (uint8_t i = 0; i < MAX_FINGER_PRESS_AMOUNT; i++) {
+        presses[i]->valid = false;
+    }
+}
+
 void quitarPress(int id) {
     // Encuentro posición libre en presses
     bool eliminado;
@@ -148,6 +154,7 @@ static int mainPhase(){
   while (libusb_bulk_transfer(handle, IN, buffer, BUFFER, &transferred, 0) == 0) {
     int offset;
     clearScreen();
+    clearPresses(); // Comentar si vamos por la alternativa de delete no implícito
 
     int intOffset = 0;
     // Nos movemos de a 5 bytes, que es el mínimo tamaño del paquete.
@@ -182,7 +189,7 @@ static int mainPhase(){
 
         int *buff = (int *) buffer;
         int op = buff[intOffset];
-        // printf("OP: %i\n", op);
+        // // printf("OP: %i\n", op);
         
         switch (op) {
             case 0x2: { // Finger press
@@ -210,18 +217,18 @@ static int mainPhase(){
 
                 break;
             }
-            case 0x3: { // Finger release
-                int id = buff[intOffset + 1];
+            // case 0x3: { // Finger release
+            //     int id = buff[intOffset + 1];
 
-                // printf("Quito press %i\n", id);
+            //     // printf("Quito press %i\n", id);
 
-                quitarPress(id);
-                intOffset += 2;
+            //     quitarPress(id);
+            //     intOffset += 2;
 
-                break;
-            }
+            //     break;
+            // }
             default: // assume 8 byte packet
-                printf("No entendí :(\n\n");
+                // printf("No entendí :(\n\n");
                 intOffset += 2;
             break;
         }
