@@ -25,6 +25,7 @@ typedef struct FingerPress {
     bool isCejilla;
     int id;
     int node;
+    int chord;
     int vertStretch;
     int pressure;
 } FingerPress;
@@ -79,6 +80,7 @@ void agregarOActualizarPress(FingerPress *press) {
     presses[positionForPress]->id = press->id;
     presses[positionForPress]->isCejilla = press->isCejilla;
     presses[positionForPress]->node = press->node;
+    presses[positionForPress]->chord = press->chord;
     presses[positionForPress]->vertStretch = press->vertStretch;
     presses[positionForPress]->pressure = press->pressure;
 
@@ -150,8 +152,6 @@ static int mainPhase(){
     int intOffset = 0;
     // Nos movemos de a 5 bytes, que es el mínimo tamaño del paquete.
     for (offset = 0; offset < transferred; offset += 8) {
-        sleep(0.1);
-
         // printf("Received: %i, ", (char) buffer[offset]);
         // printf("%i, ", (char) buffer[offset + 1]);
         // printf("%i, ", (char) buffer[offset + 2]);
@@ -189,9 +189,10 @@ static int mainPhase(){
                 FingerPress *press = malloc(sizeof(FingerPress));
                 press->isCejilla = buff[intOffset + 1];     // opcode is 1 Byte
                 press->node = buff[intOffset + 2];          // isCejilla is 1 Byte
-                press->id = buff[intOffset + 3];            // node is 2 Bytes
-                press->vertStretch = buff[intOffset + 4];   // id is 4 Bytes
-                press->pressure = buff[intOffset + 5];     // vertStretch is 4 Bytes
+                press->chord = buff[intOffset + 3];          // node is 2 Bytes
+                press->id = buff[intOffset + 4];            // node is 2 Bytes
+                press->vertStretch = buff[intOffset + 5];   // id is 4 Bytes
+                press->pressure = buff[intOffset + 6];     // vertStretch is 4 Bytes
 
                 // printf("id: %i\n", press->id);
                 // printf("node: %i\n", press->node);
@@ -203,16 +204,16 @@ static int mainPhase(){
 
                 // Este es un paquete más grande de lo común
                 // Lo aumentamos en la diferencia con el paquete más pequeño
-                // 24 - 8 = 16
-                intOffset += 6;
-                offset += 16;
+                // 28 - 8 = 20
+                intOffset += 7;
+                offset += 20;
 
                 break;
             }
             case 0x3: { // Finger release
                 int id = buff[intOffset + 1];
 
-                printf("Quito press %i\n", id);
+                // printf("Quito press %i\n", id);
 
                 quitarPress(id);
                 intOffset += 2;
@@ -233,7 +234,27 @@ static int mainPhase(){
             if (presses[i]->isCejilla) {
                 printf("[ C ]");
             } else {
-                printf("     ");
+                printf("[ ");
+                switch (presses[i]->chord) {
+                    case 0:
+                        printf("e ]");
+                        break;
+                    case 1:
+                        printf("b ]");
+                        break;
+                    case 2:
+                        printf("g ]");
+                        break;
+                    case 3:
+                        printf("d ]");
+                        break;
+                    case 4:
+                        printf("a ]");
+                        break;
+                    case 5:
+                        printf("E ]");
+                        break;
+                }
             }
             printf("Node:  %i  |  VertStretch:  %i  |  Pressure:  %i\n", presses[i]->node, presses[i]->vertStretch, presses[i]->pressure);
         }

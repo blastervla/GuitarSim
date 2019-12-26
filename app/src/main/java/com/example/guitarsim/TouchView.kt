@@ -38,4 +38,11 @@ class TouchView(context: Context, attributes: AttributeSet? = null) : View(conte
         touches.remove(id)
         removedTouches.add(id)
     }
+
+    fun removeAllTouches() {
+        touches.keys.forEach {
+            removedTouches.add(it)
+        }
+        touches.clear()
+    }
 }

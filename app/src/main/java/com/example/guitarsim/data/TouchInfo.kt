@@ -7,7 +7,7 @@ class TouchInfo(
     var y: Float,
     var verticalStretching: Float,
     var pressure: Float,
-    var size: Float // Check if can add rotation
+    var size: Float
 ) {
     val FINGER_HEIGHT = 100
 

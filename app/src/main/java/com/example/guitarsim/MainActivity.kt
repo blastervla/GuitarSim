@@ -159,6 +159,10 @@ class MainActivity : FullscreenActivity() {
                 // Then clear cejilla calculations
                 resetCejillaVariables()
             }
+        } else if (action == MotionEvent.ACTION_UP && touchView.touches.size == 1) {
+            touchView.removeAllTouches()
+            resetCejillaVariables()
+            return true
         }
 
         // Clean removed touches
@@ -170,11 +174,10 @@ class MainActivity : FullscreenActivity() {
             val pointerId = event.getPointerId(i)
             if (touchView.touches.containsKey(pointerId)) {
                 touchView.touches[pointerId]?.apply {
-                    x = event.getX(i)
                     y = event.getY(i)
 
                     // Es vertical, pero recordemos que vertical para nosotros es horizontal para el celu
-                    verticalStretching += event.getX(i) - x // TODO: Definir si + es para abajo y - es para arriba (quizás hay que cambiar el signo)
+                    verticalStretching = event.getX(i) - x // TODO: Definir si + es para abajo y - es para arriba (quizás hay que cambiar el signo)
 
                     pressure = event.getPressure(i)
                     size = event.getSize(i)
@@ -337,31 +340,49 @@ class MainActivity : FullscreenActivity() {
 //        }
 //    }
     private fun handleUsbConnection() {
-        val buff = ByteBuffer.allocate(24 * touchView.touches.size + 8 * touchView.removedTouches.size)
+        val touchesToAdd = touchView.touches.keys.filter { !cejillaPointers.contains(it) && getChord(touchView.touches[it]) != -1 }
+        val cejillaTouch = cejillaPointers.firstOrNull()
+        val touchesToRemove = touchView.removedTouches
+
+        val buff =
+            ByteBuffer.allocate(
+                28 * touchesToAdd.size
+                        + 8 * touchesToRemove.size
+                        + if (cejillaTouch != null) 28 else 0
+            )
         buff.order(ByteOrder.LITTLE_ENDIAN)
 
         // Remove old touches
-        for (touchId in touchView.removedTouches) {
+        for (touchId in touchesToRemove) {
             buff.putInt(0x3) // Command: Finger remove
             buff.putInt(touchId)
-
-            /*try {
-                Thread.sleep(500)
-            } catch (e: InterruptedException) {
-                e.printStackTrace()
-            }*/
         }
         touchView.removedTouches.clear()
 
         // Add new touches
-        for (touchId in touchView.touches.keys) {
+        for (touchId in touchesToAdd) {
             touchView.touches[touchId]?.let { touch ->
                 buff.putInt(0x2) // Command: Finger update
                 buff.putInt(0)   // isCejilla = false
                 buff.putInt(getNode(touch))
+                buff.putInt(getChord(touch))
                 buff.putInt(touchId)
                 buff.putInt(floor(touch.verticalStretching).toInt())
                 buff.putInt(floor(touch.pressure * 1000).toInt())
+                Log.v("asdf", "Chord: ${getChord(touch)}")
+            }
+        }
+        // Add cejilla touch
+        cejillaTouch?.let { cejillaPointerId ->
+            touchView.touches[cejillaPointerId]?.let { touch ->
+                buff.putInt(0x2) // Command: Finger update
+                buff.putInt(1)   // isCejilla = false
+                buff.putInt(getNode(touch))
+                buff.putInt(getChord(touch))
+                buff.putInt(cejillaPointerId)
+                buff.putInt(floor(touch.verticalStretching).toInt())
+                buff.putInt(floor(touch.pressure * 1000).toInt())
+                Log.v("asdf", "Vert stretch: ${touch.verticalStretching}")
             }
         }
         aoaManager.write(buff.array())
@@ -380,5 +401,17 @@ class MainActivity : FullscreenActivity() {
         val scaleLengthPx = ViewUtils.mmToPx(scaleLengthMm)
 
         return round(touchYInScale * nodeAmount / scaleLengthPx).toInt()
+    }
+
+    fun getChord(touch: TouchInfo?): Int {
+        if (touch == null) return -1
+
+        if (isTouchingViewOnXAxis(touch, eMString)) return 5
+        if (isTouchingViewOnXAxis(touch, aString )) return 4
+        if (isTouchingViewOnXAxis(touch, dString )) return 3
+        if (isTouchingViewOnXAxis(touch, gString )) return 2
+        if (isTouchingViewOnXAxis(touch, bString )) return 1
+        if (isTouchingViewOnXAxis(touch, emString)) return 0
+        return -1
     }
 }
