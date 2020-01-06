@@ -388,9 +388,10 @@ class MainActivity : FullscreenActivity() {
             }
         }
 
+        // Send a "clear presses" signal if no touch is active
         if (bufferSize == 0) {
             buff.putInt(0x3)
-            buff.putInt(0x0) // Remove all pressess
+            buff.putInt(0x0)
         }
 
         aoaManager.write(buff.array())
