@@ -14,10 +14,22 @@ android {
         versionName "1.0"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
+
+    signingConfigs {
+        release {
+            storeFile file('/Users/blastervla/Documents/Repositories/GuitarSim/Keystore')
+            keyAlias = 'ubauba'
+            storePassword 'ubauba'
+            keyPassword 'ubauba'
+        }
+    }
+
     buildTypes {
         release {
             minifyEnabled false
+            useProguard false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            signingConfig signingConfigs.release
         }
     }
 }

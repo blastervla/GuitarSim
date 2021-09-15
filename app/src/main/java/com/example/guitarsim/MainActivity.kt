@@ -20,6 +20,7 @@ import java.nio.ByteOrder
 import java.util.concurrent.ConcurrentLinkedQueue
 import kotlin.math.abs
 import kotlin.math.floor
+import kotlin.math.min
 import kotlin.math.round
 
 class MainActivity : FullscreenActivity() {
@@ -56,6 +57,19 @@ class MainActivity : FullscreenActivity() {
 
     private lateinit var aoaManager: AOAManager
     private var isInForeground = true
+
+    /* ============= MEDICION DE MUESTREO ============= */
+    private var didLog: Boolean = false
+    var medicionStart: Long = 0L
+
+    var minNanoTimeSinceLastEvent: Long = 0L
+    var lastEventNanoTime: Long = 0L
+
+    val MILI_SEC: Long = 1000L
+    val MICRO_SEC: Long = 1000L * MILI_SEC
+    val NANO_SEC: Long = 1000L * MICRO_SEC
+    val PERIODO_MEDICION: Long = 10L * NANO_SEC
+    /* ============= MEDICION DE MUESTREO ============= */
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -151,6 +165,11 @@ class MainActivity : FullscreenActivity() {
     }
 
     override fun onTouchEvent(event: MotionEvent): Boolean {
+
+        /* ============= MEDICION DE MUESTREO ============= */
+        medirMuestreoNano() // Descomentar si se quiere medir
+        /* ============= MEDICION DE MUESTREO ============= */
+
         val action = event.actionMasked
         if (action == MotionEvent.ACTION_POINTER_UP || action == MotionEvent.ACTION_CANCEL) {
             touchView.removeTouch(event.getPointerId(event.actionIndex))
@@ -292,6 +311,27 @@ class MainActivity : FullscreenActivity() {
         }
 
         return true
+    }
+
+    private fun medirMuestreoNano() {
+        if (didLog) return
+
+        val nowNano = System.nanoTime()
+        if (medicionStart == 0L) {
+            medicionStart = nowNano
+            lastEventNanoTime = medicionStart
+        } else {
+            minNanoTimeSinceLastEvent = if (minNanoTimeSinceLastEvent != 0L) {
+                min(minNanoTimeSinceLastEvent, nowNano - lastEventNanoTime)
+            } else {
+                nowNano - lastEventNanoTime
+            }
+            if (nowNano - medicionStart >= PERIODO_MEDICION) {
+                Log.v("TOUCH_EVENT", "Minimum Time since last event: $minNanoTimeSinceLastEvent nano seconds")
+                Log.v("TOUCH_EVENT", "Minimum Mili Time since last event: ${minNanoTimeSinceLastEvent.toDouble() / NANO_SEC * MILI_SEC} milli seconds")
+                didLog = true
+            }
+        }
     }
 
     private fun resetCejillaVariables() {
