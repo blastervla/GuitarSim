@@ -360,7 +360,6 @@ class MainActivity : FullscreenActivity() {
 
         fretsToShow.forEach { fretLocation ->
             val fretView = View(this).apply {
-                // TODO: Pasar 12 a dimens
                 layoutParams = FrameLayout.LayoutParams(
                     FrameLayout.LayoutParams.MATCH_PARENT,
                     resources.getDimensionPixelSize(R.dimen.fret_width)
