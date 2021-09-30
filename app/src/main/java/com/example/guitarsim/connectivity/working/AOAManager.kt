@@ -18,7 +18,7 @@ class AOAManager(
 
     fun connect() {
         if (mUsbAccessory == null) {
-            val accessoryList = mUsbManager.accessoryList
+            val accessoryList = mUsbManager.accessoryList ?: return
             // UsbAccessoryは1つしかつながれていない前提で処理を行うので注意
             mUsbAccessory = accessoryList[0]
         }

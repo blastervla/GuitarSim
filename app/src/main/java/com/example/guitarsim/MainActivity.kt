@@ -137,6 +137,8 @@ class MainActivity : FullscreenActivity() {
         var touchingBString = false
         var touchingEmString = false
 
+//        medirMuestreoPantalla() // Uncomment to sample latency
+
         touchView.touches.entries.filter { !cejillaPointers.contains(it.key) }.map { it.value }.forEach {
             touchingEMString = touchingEMString || isTouchingViewOnXAxis(it, eMString)
             touchingAString = touchingAString || isTouchingViewOnXAxis(it, aString)
@@ -164,10 +166,33 @@ class MainActivity : FullscreenActivity() {
         }
     }
 
+    var lastTouch = 0f
+    var totalCount: Int = 1
+    var sameCount: Int = 0
+    var differentCount: Int = -1
+    val SAMPLE_SIZE = 1000
+    private fun medirMuestreoPantalla() {
+        if (sameCount + differentCount < SAMPLE_SIZE) {
+            touchView.touches.entries.firstOrNull { true }?.let {
+                if (it.value.y == lastTouch) {
+                    sameCount++
+                } else {
+                    differentCount++
+                }
+                lastTouch = it.value.y
+            }
+        } else {
+            Log.v("LATENCY_SAMPLE_RESULTS", "$TIEMPO_MUESTREO_MILLIS ms [$totalCount] Latecy sample results: $sameCount same vs $differentCount different")
+            sameCount = 0
+            differentCount = 0
+            totalCount++
+        }
+    }
+
     override fun onTouchEvent(event: MotionEvent): Boolean {
 
         /* ============= MEDICION DE MUESTREO ============= */
-        medirMuestreoNano() // Descomentar si se quiere medir
+//        medirMuestreoNano() // Descomentar si se quiere medir
         /* ============= MEDICION DE MUESTREO ============= */
 
         val action = event.actionMasked
