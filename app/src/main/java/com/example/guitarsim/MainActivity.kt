@@ -2,6 +2,7 @@ package com.example.guitarsim
 
 import android.content.Context
 import android.content.Intent
+import android.graphics.Color
 import android.hardware.SensorManager
 import android.hardware.usb.UsbAccessory
 import android.hardware.usb.UsbManager
@@ -138,6 +139,7 @@ class MainActivity : FullscreenActivity() {
         var touchingEmString = false
 
 //        medirMuestreoPantalla() // Uncomment to sample latency
+//        mostrarTouchesViolentamente()
 
         touchView.touches.entries.filter { !cejillaPointers.contains(it.key) }.map { it.value }.forEach {
             touchingEMString = touchingEMString || isTouchingViewOnXAxis(it, eMString)
@@ -163,6 +165,14 @@ class MainActivity : FullscreenActivity() {
             Thread.sleep(TIEMPO_MUESTREO_MILLIS)
         }.then {
             updateView()
+        }
+    }
+
+    private fun mostrarTouchesViolentamente() {
+        if (touchView.touches.isNotEmpty()) {
+            touchView.setBackgroundColor(Color.RED)
+        } else {
+            touchView.setBackgroundColor(Color.TRANSPARENT)
         }
     }
 
