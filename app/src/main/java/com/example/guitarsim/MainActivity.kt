@@ -140,6 +140,7 @@ class MainActivity : FullscreenActivity() {
 
 //        medirMuestreoPantalla() // Uncomment to sample latency
 //        mostrarTouchesViolentamente()
+//        medirValoresDePresion()
 
         touchView.touches.entries.filter { !cejillaPointers.contains(it.key) }.map { it.value }.forEach {
             touchingEMString = touchingEMString || isTouchingViewOnXAxis(it, eMString)
@@ -165,6 +166,12 @@ class MainActivity : FullscreenActivity() {
             Thread.sleep(TIEMPO_MUESTREO_MILLIS)
         }.then {
             updateView()
+        }
+    }
+
+    private fun medirValoresDePresion() {
+        touchView.touches.entries.firstOrNull { true }?.let {
+            Log.v("PRESSURE_TEST_RESULTS", it.value.pressure.toString())
         }
     }
 
