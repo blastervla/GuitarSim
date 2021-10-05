@@ -122,6 +122,7 @@
     </LinearLayout>
 
     <LinearLayout
+        android:visibility="gone"
         android:id="@+id/nodeAmountContainer"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -129,6 +130,7 @@
         android:orientation="horizontal"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintBottom_toTopOf="@id/chkEnumerateFrets"
         app:layout_constraintTop_toBottomOf="@id/fretAmountContainer">
 
         <TextView
@@ -152,5 +154,13 @@
             android:textAlignment="center" />
 
     </LinearLayout>
+
+    <CheckBox
+        android:id="@+id/chkEnumerateFrets"
+        app:layout_constraintTop_toBottomOf="@id/nodeAmountContainer"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Enumerar trastes"
+        android:textSize="16sp" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

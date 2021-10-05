@@ -21,5 +21,5 @@ class GuitarUtils(scaleMillis: Double, fretAmount: Int) {
     }
 
     fun fretsInViewport(viewPortBeginPx: Int, viewPortEndPx: Int) =
-        fretsPx.filter { it in viewPortBeginPx..viewPortEndPx }
+        fretsPx.mapIndexed { i, it -> Pair(i, it) }.filter { it.second in viewPortBeginPx..viewPortEndPx }
 }

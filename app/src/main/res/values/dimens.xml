@@ -1,4 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <dimen name="fret_width">12dp</dimen>
+    <dimen name="fret_one_digit_size">44sp</dimen>
+    <dimen name="fret_two_digit_size">20sp</dimen>
 </resources>

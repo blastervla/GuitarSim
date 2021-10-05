@@ -14,6 +14,7 @@ class SharedPrefsUtils(val context: Context) {
         private const val SCALE_LENGTH_KEY = "SCALE_SIZE"
         private const val FRET_AMOUNT_KEY = "FRET_AMOUNT"
         private const val NODE_AMOUNT_KEY = "NODE_AMOUNT"
+        private const val ENUMERATE_FRETS = "ENUMERATE_FRETS"
 
         fun isStoragePermissionGranted(fragment: Fragment): Boolean {
             return if (ActivityCompat.checkSelfPermission(
@@ -36,8 +37,9 @@ class SharedPrefsUtils(val context: Context) {
         }
     }
 
-    fun getViewportLocation(): Int = context.getSharedPreferences(SHARED_PREFS_FILE, Context.MODE_PRIVATE)
-        .getInt(VIEWPORT_LOCATION_KEY, 0)
+    fun getViewportLocation(): Int =
+        context.getSharedPreferences(SHARED_PREFS_FILE, Context.MODE_PRIVATE)
+            .getInt(VIEWPORT_LOCATION_KEY, 0)
 
     fun setScaleLength(scaleSize: Float) {
         context.getSharedPreferences(SHARED_PREFS_FILE, Context.MODE_PRIVATE).edit().apply {
@@ -46,8 +48,9 @@ class SharedPrefsUtils(val context: Context) {
         }
     }
 
-    fun getScaleLength(): Float = context.getSharedPreferences(SHARED_PREFS_FILE, Context.MODE_PRIVATE)
-        .getFloat(SCALE_LENGTH_KEY, 650f)
+    fun getScaleLength(): Float =
+        context.getSharedPreferences(SHARED_PREFS_FILE, Context.MODE_PRIVATE)
+            .getFloat(SCALE_LENGTH_KEY, 650f)
 
     fun setFretAmount(fretAmount: Int) {
         context.getSharedPreferences(SHARED_PREFS_FILE, Context.MODE_PRIVATE).edit().apply {
@@ -68,4 +71,15 @@ class SharedPrefsUtils(val context: Context) {
 
     fun getNodeAmount(): Int = context.getSharedPreferences(SHARED_PREFS_FILE, Context.MODE_PRIVATE)
         .getInt(NODE_AMOUNT_KEY, 400)
+
+    fun setEnumerateFrets(shouldEnumerateFrets: Boolean) {
+        context.getSharedPreferences(SHARED_PREFS_FILE, Context.MODE_PRIVATE).edit().apply {
+            putBoolean(ENUMERATE_FRETS, shouldEnumerateFrets)
+            apply()
+        }
+    }
+
+    fun shouldEnumerateFrets(): Boolean =
+        context.getSharedPreferences(SHARED_PREFS_FILE, Context.MODE_PRIVATE)
+            .getBoolean(ENUMERATE_FRETS, true)
 }

@@ -7,10 +7,13 @@ import android.hardware.SensorManager
 import android.hardware.usb.UsbAccessory
 import android.hardware.usb.UsbManager
 import android.os.Bundle
+import android.util.DisplayMetrics
 import android.util.Log
 import android.view.MotionEvent
 import android.view.View
+import android.view.View.MeasureSpec
 import android.widget.FrameLayout
+import android.widget.TextView
 import androidx.core.content.ContextCompat
 import com.example.guitarsim.connectivity.working.AOAManager
 import com.example.guitarsim.data.TouchInfo
@@ -19,15 +22,13 @@ import kotlinx.android.synthetic.main.activity_main.*
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.util.concurrent.ConcurrentLinkedQueue
-import kotlin.math.abs
-import kotlin.math.floor
-import kotlin.math.min
-import kotlin.math.round
+import kotlin.math.*
+
 
 class MainActivity : FullscreenActivity() {
 
     companion object {
-        const val TIEMPO_MUESTREO_MILLIS: Long = 5
+        const val TIEMPO_MUESTREO_MILLIS: Long = 10
     }
 
     val scaleLengthMm: Double
@@ -38,6 +39,9 @@ class MainActivity : FullscreenActivity() {
 
     val nodeAmount: Int
         get() = SharedPrefsUtils(this).getNodeAmount()
+
+    val shouldEnumerateFrets: Boolean
+        get() = SharedPrefsUtils(this).shouldEnumerateFrets()
 
     val lastSizes = hashMapOf<Int, Float>()
     val lastJitters = ConcurrentLinkedQueue<Float>()
@@ -199,7 +203,10 @@ class MainActivity : FullscreenActivity() {
                 lastTouch = it.value.y
             }
         } else {
-            Log.v("LATENCY_SAMPLE_RESULTS", "$TIEMPO_MUESTREO_MILLIS ms [$totalCount] Latecy sample results: $sameCount same vs $differentCount different")
+            Log.v(
+                "LATENCY_SAMPLE_RESULTS",
+                "$TIEMPO_MUESTREO_MILLIS ms [$totalCount] Latecy sample results: $sameCount same vs $differentCount different"
+            )
             sameCount = 0
             differentCount = 0
             totalCount++
@@ -283,13 +290,19 @@ class MainActivity : FullscreenActivity() {
             if (hasAlignedTouches) {
                 cejillaPointers = cleanAlignedPointers.map { event.getPointerId(it) }
 
-                val sizeSum = cleanAlignedPointers.map { event.getSize(it) }.reduce { acc, i -> abs(acc - i) }
-                val pressureSum = cleanAlignedPointers.map { event.getPressure(it) }.reduce { acc, i -> abs(acc - i) }
+                val sizeSum = cleanAlignedPointers.map { event.getSize(it) }.reduce { acc, i -> abs(
+                    acc - i
+                ) }
+                val pressureSum = cleanAlignedPointers.map { event.getPressure(it) }.reduce { acc, i -> abs(
+                    acc - i
+                ) }
 /*                testText.text =
                     if (hasAlignedTouches && sizeSum < 0.13 && pressureSum < 0.13) "Tiene cejilla" else "Sin cejilla"*/
 
                 val hasPreviousXsForAligned =
-                    lastSizes.filter { cleanAlignedPointers.map { event.getPointerId(it) }.contains(it.key) }
+                    lastSizes.filter { cleanAlignedPointers.map { event.getPointerId(it) }.contains(
+                        it.key
+                    ) }
                         .isNotEmpty()
                 if (hasPreviousXsForAligned) {
                     val entriesToRemove = arrayListOf<Int>()
@@ -369,8 +382,14 @@ class MainActivity : FullscreenActivity() {
                 nowNano - lastEventNanoTime
             }
             if (nowNano - medicionStart >= PERIODO_MEDICION) {
-                Log.v("TOUCH_EVENT", "Minimum Time since last event: $minNanoTimeSinceLastEvent nano seconds")
-                Log.v("TOUCH_EVENT", "Minimum Mili Time since last event: ${minNanoTimeSinceLastEvent.toDouble() / NANO_SEC * MILI_SEC} milli seconds")
+                Log.v(
+                    "TOUCH_EVENT",
+                    "Minimum Time since last event: $minNanoTimeSinceLastEvent nano seconds"
+                )
+                Log.v(
+                    "TOUCH_EVENT",
+                    "Minimum Mili Time since last event: ${minNanoTimeSinceLastEvent.toDouble() / NANO_SEC * MILI_SEC} milli seconds"
+                )
                 didLog = true
             }
         }
@@ -400,15 +419,58 @@ class MainActivity : FullscreenActivity() {
 
         fretContainer.removeAllViews()
 
-        fretsToShow.forEach { fretLocation ->
+        var lastFret: Pair<Int, Int>? = null
+        fretsToShow.forEach { fret ->
             val fretView = View(this).apply {
                 layoutParams = FrameLayout.LayoutParams(
                     FrameLayout.LayoutParams.MATCH_PARENT,
                     resources.getDimensionPixelSize(R.dimen.fret_width)
                 ).apply {
+                    val fretLocation = fret.second
                     topMargin = fretLocation - viewPortBeginPx
                 }
                 setBackgroundColor(ContextCompat.getColor(this@MainActivity, R.color.fretColor))
+            }
+
+            if (shouldEnumerateFrets) {
+                lastFret?.let { lastFret ->
+                    val fretNumber = fret.first
+                    val size =
+                        resources.getDimension(if (fretNumber < 10) R.dimen.fret_one_digit_size else R.dimen.fret_two_digit_size)
+                    val numberTextView = TextView(this).apply {
+                        rotation = -90f
+                        text = fretNumber.toString()
+                        textSize = size
+
+                        val displayMetrics = DisplayMetrics()
+                        windowManager.defaultDisplay.getMetrics(displayMetrics)
+                        val deviceWidth = displayMetrics.widthPixels
+
+                        val widthMeasureSpec =
+                            MeasureSpec.makeMeasureSpec(deviceWidth, MeasureSpec.AT_MOST)
+                        val heightMeasureSpec =
+                            MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED)
+                        measure(widthMeasureSpec, heightMeasureSpec)
+                        layoutParams = FrameLayout.LayoutParams(
+                            measuredWidth,
+                            measuredHeight
+                        ).apply {
+                            val fretLocation = fret.second
+                            val lastFretLocation = lastFret.second
+                            topMargin =
+                                (lastFretLocation + fretLocation - 2 * viewPortBeginPx) / 2 - measuredHeight / 2
+                            leftMargin = deviceWidth / 2 - measuredWidth / 2
+                        }
+                        setTextColor(
+                            ContextCompat.getColor(
+                                this@MainActivity,
+                                R.color.fretNumberColor
+                            )
+                        )
+                    }
+                    fretContainer.addView(numberTextView)
+                }
+                lastFret = fret
             }
 
             fretContainer.addView(fretView)

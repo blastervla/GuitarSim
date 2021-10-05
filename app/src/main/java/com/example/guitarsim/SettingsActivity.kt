@@ -14,6 +14,8 @@ class SettingsActivity : AppCompatActivity() {
         txtScaleLength.setText(SharedPrefsUtils(this).getScaleLength().toString())
         txtFretAmount.setText(SharedPrefsUtils(this).getFretAmount().toString())
         txtViewportLocation.setText(SharedPrefsUtils(this).getViewportLocation().toString())
+        txtNodeAmount.setText(SharedPrefsUtils(this).getNodeAmount().toString())
+        chkEnumerateFrets.isChecked = SharedPrefsUtils(this).shouldEnumerateFrets()
     }
 
     override fun onBackPressed() {
@@ -22,6 +24,7 @@ class SettingsActivity : AppCompatActivity() {
             setScaleLength(ParsingUtils.defaultIfEmptyString(txtScaleLength.text.toString(), 650).toFloat())
             setFretAmount(ParsingUtils.defaultIfEmptyString(txtFretAmount.text.toString(), 24).toInt())
             setNodeAmount(ParsingUtils.defaultIfEmptyString(txtNodeAmount.text.toString(), 400).toInt())
+            setEnumerateFrets(chkEnumerateFrets.isChecked)
             setViewportLocation(ParsingUtils.defaultIfEmptyString(txtViewportLocation.text.toString(), 0).toInt())
         }
     }
