@@ -216,7 +216,7 @@ class MainActivity : FullscreenActivity() {
 
         val action = event.actionMasked
         val pointerId = event.getPointerId(event.actionIndex)
-        val pointerIndex = event.actionIndex
+        var pointerIndex = event.actionIndex
         when (action) {
             MotionEvent.ACTION_POINTER_UP -> {
                 touchView.removeTouch(pointerId)
@@ -236,14 +236,17 @@ class MainActivity : FullscreenActivity() {
                 )
             }
             MotionEvent.ACTION_MOVE -> {
-                touchView.touches[pointerId]?.apply {
-                    y = event.getY(pointerIndex)
+                touchView.touches.forEach { (pointerId, touchInfo) ->
+                    pointerIndex = event.findPointerIndex(pointerId)
+                    touchInfo.apply {
+                        y = event.getY(pointerIndex)
 
-                    // Es vertical, pero recordemos que vertical para nosotros es horizontal para el celu
-                    verticalStretching = event.getX(pointerIndex) - x
+                        // Es vertical, pero recordemos que vertical para nosotros es horizontal para el celu
+                        verticalStretching = event.getX(pointerIndex) - x
 
-                    pressure = event.getPressure(pointerIndex)
-                    size = event.getSize(pointerIndex)
+                        pressure = event.getPressure(pointerIndex)
+                        size = event.getSize(pointerIndex)
+                    }
                 }
             }
         }
@@ -383,12 +386,12 @@ class MainActivity : FullscreenActivity() {
     /* =============== USB Connection Handler =============== */
     private fun handleUsbConnection() {
         val touchesToAdd =
-            touchView.touches.keys.filter { !cejillaPointers.contains(it) && getChord(touchView.touches[it]) != -1 }
+            touchView.touches.keys.filter { !cejillaPointers.contains(it) && getChords(touchView.touches[it]).isNotEmpty() }
         val cejillaTouch = cejillaPointers.firstOrNull()
-        val touchesToRemove = arrayListOf<Int>() // touchView.removedTouches
 
+        val chordAmount = touchesToAdd.sumBy { getChords(touchView.touches[it]).size }
         val bufferSize =
-            28 * touchesToAdd.size + 8 * touchesToRemove.size + if (cejillaTouch != null) 28 else 0
+            28 * chordAmount + if (cejillaTouch != null) 28 else 0
 
         val buff =
             ByteBuffer.allocate(
@@ -402,14 +405,15 @@ class MainActivity : FullscreenActivity() {
         // Add new touches
         for (touchId in touchesToAdd) {
             touchView.touches[touchId]?.let { touch ->
-                buff.putInt(0x2) // Command: Finger update
-                buff.putInt(0)   // isCejilla = false
-                buff.putInt(getNode(touch))
-                buff.putInt(getChord(touch))
-                buff.putInt(touchId)
-                buff.putInt(floor(touch.verticalStretching).toInt())
-                buff.putInt(floor(touch.pressure * 1000).toInt())
-                Log.v("asdf", "Chord: ${getChord(touch)}")
+                getChords(touch).forEach { chord ->
+                    buff.putInt(0x2) // Command: Finger update
+                    buff.putInt(0)   // isCejilla = false
+                    buff.putInt(getNode(touch))
+                    buff.putInt(chord)
+                    buff.putInt(touchId)
+                    buff.putInt(floor(touch.verticalStretching).toInt())
+                    buff.putInt(floor(touch.pressure * 1000).toInt())
+                }
             }
         }
         // Add cejilla touch
@@ -418,11 +422,10 @@ class MainActivity : FullscreenActivity() {
                 buff.putInt(0x2) // Command: Finger update
                 buff.putInt(1)   // isCejilla = false
                 buff.putInt(getNode(touch))
-                buff.putInt(getChord(touch))
+                buff.putInt(0)
                 buff.putInt(cejillaPointerId)
                 buff.putInt(floor(touch.verticalStretching).toInt())
                 buff.putInt(floor(touch.pressure * 1000).toInt())
-                Log.v("asdf", "Vert stretch: ${touch.verticalStretching}")
             }
         }
 
@@ -445,15 +448,17 @@ class MainActivity : FullscreenActivity() {
         return round(touchYInScale * nodeAmount / scaleLengthPx).toInt()
     }
 
-    fun getChord(touch: TouchInfo?): Int {
-        if (touch == null) return -1
+    fun getChords(touch: TouchInfo?): List<Int> {
+        val chords = ArrayList<Int>()
+        if (touch == null) return chords
 
-        if (isTouchingViewOnXAxis(touch, eMString)) return 5
-        if (isTouchingViewOnXAxis(touch, aString)) return 4
-        if (isTouchingViewOnXAxis(touch, dString)) return 3
-        if (isTouchingViewOnXAxis(touch, gString)) return 2
-        if (isTouchingViewOnXAxis(touch, bString)) return 1
-        if (isTouchingViewOnXAxis(touch, emString)) return 0
-        return -1
+
+        if (isTouchingViewOnXAxis(touch, eMString)) chords.add(5)
+        if (isTouchingViewOnXAxis(touch, aString)) chords.add(4)
+        if (isTouchingViewOnXAxis(touch, dString)) chords.add(3)
+        if (isTouchingViewOnXAxis(touch, gString)) chords.add(2)
+        if (isTouchingViewOnXAxis(touch, bString)) chords.add(1)
+        if (isTouchingViewOnXAxis(touch, emString)) chords.add(0)
+        return chords
     }
 }
