@@ -21,7 +21,6 @@ import com.example.guitarsim.utils.*
 import kotlinx.android.synthetic.main.activity_main.*
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
-import java.util.concurrent.ConcurrentLinkedQueue
 import kotlin.math.*
 
 
@@ -43,14 +42,18 @@ class MainActivity : FullscreenActivity() {
     val shouldEnumerateFrets: Boolean
         get() = SharedPrefsUtils(this).shouldEnumerateFrets()
 
-    val lastSizes = hashMapOf<Int, Float>()
-    val lastJitters = ConcurrentLinkedQueue<Float>()
-    val lastCejillas = ConcurrentLinkedQueue<Boolean>()
-    var cejillaPointers = listOf<Int>()
-    var nonCejillaCount = 0
+    //    val lastSizes = hashMapOf<Int, Float>()
+//    val lastJitters = ConcurrentLinkedQueue<Float>()
+//    val lastCejillas = ConcurrentLinkedQueue<Boolean>()
+    var cejillaPointers = arrayListOf<Int>()
+
+    //    var nonCejillaCount = 0
+    var tieneCejilla = false
 
     /* var */ val viewPortBeginPx: Int
-        get() = ViewUtils.mmToPx(SharedPrefsUtils(this).getViewportLocation().toDouble()) // TODO: Make dynamic
+        get() = ViewUtils.mmToPx(
+            SharedPrefsUtils(this).getViewportLocation().toDouble()
+        ) // TODO: Make dynamic
     val viewPortEndPx: Int
         get() = viewPortBeginPx + ViewUtils.getScreenHeight(this)
     val guitarScalePx
@@ -146,14 +149,15 @@ class MainActivity : FullscreenActivity() {
 //        mostrarTouchesViolentamente()
 //        medirValoresDePresion()
 
-        touchView.touches.entries.filter { !cejillaPointers.contains(it.key) }.map { it.value }.forEach {
-            touchingEMString = touchingEMString || isTouchingViewOnXAxis(it, eMString)
-            touchingAString = touchingAString || isTouchingViewOnXAxis(it, aString)
-            touchingDString = touchingDString || isTouchingViewOnXAxis(it, dString)
-            touchingGString = touchingGString || isTouchingViewOnXAxis(it, gString)
-            touchingBString = touchingBString || isTouchingViewOnXAxis(it, bString)
-            touchingEmString = touchingEmString || isTouchingViewOnXAxis(it, emString)
-        }
+        touchView.touches.entries.filter { !cejillaPointers.contains(it.key) }.map { it.value }
+            .forEach {
+                touchingEMString = touchingEMString || isTouchingViewOnXAxis(it, eMString)
+                touchingAString = touchingAString || isTouchingViewOnXAxis(it, aString)
+                touchingDString = touchingDString || isTouchingViewOnXAxis(it, dString)
+                touchingGString = touchingGString || isTouchingViewOnXAxis(it, gString)
+                touchingBString = touchingBString || isTouchingViewOnXAxis(it, bString)
+                touchingEmString = touchingEmString || isTouchingViewOnXAxis(it, emString)
+            }
 
         if (touchingEMString) testText.text = "${testText.text}  EM\n"
         if (touchingAString) testText.text = "${testText.text}  A\n"
@@ -220,152 +224,160 @@ class MainActivity : FullscreenActivity() {
         /* ============= MEDICION DE MUESTREO ============= */
 
         val action = event.actionMasked
-        if (action == MotionEvent.ACTION_POINTER_UP || action == MotionEvent.ACTION_CANCEL) {
-            touchView.removeTouch(event.getPointerId(event.actionIndex))
-
-            if (touchView.touches.isEmpty()) {
-                // Then clear cejilla calculations
+        val pointerId = event.getPointerId(event.actionIndex)
+        val pointerIndex = event.actionIndex
+        when (action) {
+            MotionEvent.ACTION_POINTER_UP -> {
+                touchView.removeTouch(pointerId)
+                cejillaPointers.remove(pointerId)
+            }
+            MotionEvent.ACTION_UP -> {
+                touchView.removeAllTouches()
                 resetCejillaVariables()
             }
-        } else if (action == MotionEvent.ACTION_UP && touchView.touches.size == 1) {
-            touchView.removeAllTouches()
-            resetCejillaVariables()
-            return true
-        }
-
-        // Clean removed touches
-        ArrayList(touchView.touches.filter { event.findPointerIndex(it.key) == -1 }.map { it.key }).forEach {
-            touchView.removeTouch(it)
-        }
-
-        for (i in 0 until event.pointerCount) {
-            val pointerId = event.getPointerId(i)
-            if (touchView.touches.containsKey(pointerId)) {
+            MotionEvent.ACTION_DOWN, MotionEvent.ACTION_POINTER_DOWN -> {
+                touchView.touches[pointerId] = TouchInfo(
+                    x = event.getX(pointerIndex),
+                    y = event.getY(pointerIndex),
+                    verticalStretching = 0f,
+                    pressure = event.getPressure(pointerIndex),
+                    size = event.getSize(pointerIndex)
+                )
+            }
+            MotionEvent.ACTION_MOVE -> {
                 touchView.touches[pointerId]?.apply {
-                    y = event.getY(i)
+                    y = event.getY(pointerIndex)
 
                     // Es vertical, pero recordemos que vertical para nosotros es horizontal para el celu
-                    verticalStretching =
-                        event.getX(i) - x // TODO: Definir si + es para abajo y - es para arriba (quizás hay que cambiar el signo)
+                    verticalStretching = event.getX(pointerIndex) - x
 
-                    pressure = event.getPressure(i)
-                    size = event.getSize(i)
+                    pressure = event.getPressure(pointerIndex)
+                    size = event.getSize(pointerIndex)
                 }
-            } else {
-                touchView.touches[pointerId] = TouchInfo(
-                    x = event.getX(i),
-                    y = event.getY(i),
-                    verticalStretching = 0f,
-                    pressure = event.getPressure(i),
-                    size = event.getSize(i)
-                )
             }
-            /*touchView.touches[pointerId]?.let {
-                Log.v(
-                    "GuitarSim", "verticalStretching = ${it.verticalStretching}\npressure = ${event.pressure}\n" +
-                            "size = ${event.size}"
-                )
-            }*/
-            /*testText.text =
-                "(${event.getX(i)}, ${event.getY(i)})\n\nSize: ${event.getSize(i)}\nPressure: ${event.getPressure(i)}\nOrientation: ${event.getOrientation(
-                    i
-                )}\nTouches: ${event.pointerCount}"*/
         }
 
-        if (event.pointerCount >= 2) {
-            val pointerIndexes = (0 until event.pointerCount)
-            val alignedPointers = pointerIndexes.filter { pointA ->
-                val others = pointerIndexes.filter { pointB ->
-                    pointB != pointA && abs(event.getY(pointA) - event.getY(pointB)) <= 150
-                }
-                others.isNotEmpty()
-            }
-
-            val cleanAlignedPointers = alignedPointers.filter {
-                abs(event.getY(alignedPointers.first()) - event.getY(it)) <= 150
-            }
-
-            val hasAlignedTouches = cleanAlignedPointers.isNotEmpty()
-
-            if (hasAlignedTouches) {
-                cejillaPointers = cleanAlignedPointers.map { event.getPointerId(it) }
-
-                val sizeSum = cleanAlignedPointers.map { event.getSize(it) }.reduce { acc, i -> abs(
-                    acc - i
-                ) }
-                val pressureSum = cleanAlignedPointers.map { event.getPressure(it) }.reduce { acc, i -> abs(
-                    acc - i
-                ) }
-/*                testText.text =
-                    if (hasAlignedTouches && sizeSum < 0.13 && pressureSum < 0.13) "Tiene cejilla" else "Sin cejilla"*/
-
-                val hasPreviousXsForAligned =
-                    lastSizes.filter { cleanAlignedPointers.map { event.getPointerId(it) }.contains(
-                        it.key
-                    ) }
-                        .isNotEmpty()
-                if (hasPreviousXsForAligned) {
-                    val entriesToRemove = arrayListOf<Int>()
-                    lastJitters.add(lastSizes.map { entry ->
-                        val id = entry.key
-                        val lastSize = entry.value
-
-                        val pointerIndex = event.findPointerIndex(id)
-                        if (pointerIndex == -1) {
-                            entriesToRemove.add(entry.key)
-                            0f
-                        } else {
-                            val currentSize = event.getSize(pointerIndex)
-                            abs(currentSize - lastSize)
-                        }
-                    }.sum())
-
-                    if (lastJitters.size > 100) {
-                        lastJitters.remove()
-                    }
-
-                    val tieneCejilla = pressureSum < 0.5 && (lastJitters.max() ?: 0f) >= 0.03
-                    lastCejillas.add(tieneCejilla)
-                    if (lastCejillas.size > 50) {
-                        lastCejillas.remove()
-                    }
-
-                    /*testText.text =
-                        "${testText.text}\nJitter = ${lastJitters.max()}\nSize sum: $sizeSum\nPressure sum: $pressureSum"*/
-
-                    // Clean no longer used positions
-                    entriesToRemove.forEach {
-                        lastSizes.remove(it)
-                    }
-
-                    if (tieneCejilla()) {
-                        nonCejillaCount = 0
-                    } else {
-                        cejillaPointers = listOf()
-                    }
-                }
-
-                cleanAlignedPointers.forEach {
-                    lastSizes[event.getPointerId(it)] = event.getSize(it)
-                }
-            } else {
-                resetCejillaVariables()
-            }
-
-
-//            testText.text =
-//                "(${event.getX(0) - event.getX(1)}, ${event.getY(0) - event.getY(1)})\n\nSize: ${event.getSize(0) - event.getSize(
-//                    1
-//                )}\nPressure: ${event.getPressure(0) - event.getPressure(1)}" +
-//                        "\nTouches: ${event.pointerCount}"
-        } else if (nonCejillaCount >= 10) {
-            resetCejillaVariables()
-            nonCejillaCount = 0
-        } else {
-            nonCejillaCount++
+        when {
+            event.pointerCount >= 2 -> processCejilla(/*event*/)
+//            nonCejillaCount >= 10 -> {
+//                resetCejillaVariables()
+//                nonCejillaCount = 0
+//            }
+//            else -> nonCejillaCount++
         }
 
         return true
+    }
+
+    private fun processCejilla(/*event: MotionEvent*/) {
+        val emPresses = touchView.touches.filter { isTouchingViewOnXAxis(it.value, emString) }
+        val eMPresses = touchView.touches.filter { isTouchingViewOnXAxis(it.value, eMString) }
+        val alignedPresses = twoAligned(emPresses, eMPresses)
+        tieneCejilla = alignedPresses != null
+        alignedPresses?.let {
+            cejillaPointers.add(alignedPresses.first)
+            cejillaPointers.add(alignedPresses.second)
+        }
+        return
+
+//        val pointerIndexes = (0 until event.pointerCount)
+//        val alignedPointers = pointerIndexes.filter { pointA ->
+//            val others = pointerIndexes.filter { pointB ->
+//                pointB != pointA && abs(event.getY(pointA) - event.getY(pointB)) <= 150
+//            }
+//            others.isNotEmpty()
+//        }
+//
+//        val cleanAlignedPointers = alignedPointers.filter {
+//            abs(event.getY(alignedPointers.first()) - event.getY(it)) <= 150
+//        }
+//
+//        val hasAlignedTouches = cleanAlignedPointers.isNotEmpty()
+//
+//        if (hasAlignedTouches) {
+//            cejillaPointers = cleanAlignedPointers.map { event.getPointerId(it) }
+//
+//            val sizeSum = cleanAlignedPointers.map { event.getSize(it) }.reduce { acc, i ->
+//                abs(
+//                    acc - i
+//                )
+//            }
+//            val pressureSum = cleanAlignedPointers.map { event.getPressure(it) }.reduce { acc, i ->
+//                abs(
+//                    acc - i
+//                )
+//            }
+//    /*                testText.text =
+//                        if (hasAlignedTouches && sizeSum < 0.13 && pressureSum < 0.13) "Tiene cejilla" else "Sin cejilla"*/
+//
+//            val hasPreviousXsForAligned =
+//                lastSizes.filter {
+//                    cleanAlignedPointers.map { event.getPointerId(it) }.contains(
+//                        it.key
+//                    )
+//                }
+//                    .isNotEmpty()
+//            if (hasPreviousXsForAligned) {
+//                val entriesToRemove = arrayListOf<Int>()
+//                lastJitters.add(lastSizes.map { entry ->
+//                    val id = entry.key
+//                    val lastSize = entry.value
+//
+//                    val pointerIndex = event.findPointerIndex(id)
+//                    if (pointerIndex == -1) {
+//                        entriesToRemove.add(entry.key)
+//                        0f
+//                    } else {
+//                        val currentSize = event.getSize(pointerIndex)
+//                        abs(currentSize - lastSize)
+//                    }
+//                }.sum())
+//
+//                if (lastJitters.size > 100) {
+//                    lastJitters.remove()
+//                }
+//
+//                val tieneCejilla = pressureSum < 0.5 && (lastJitters.max() ?: 0f) >= 0.03
+//                lastCejillas.add(tieneCejilla)
+//                if (lastCejillas.size > 50) {
+//                    lastCejillas.remove()
+//                }
+//
+//                /*testText.text =
+//                        "${testText.text}\nJitter = ${lastJitters.max()}\nSize sum: $sizeSum\nPressure sum: $pressureSum"*/
+//
+//                // Clean no longer used positions
+//                entriesToRemove.forEach {
+//                    lastSizes.remove(it)
+//                }
+//
+//                if (tieneCejilla()) {
+//                    nonCejillaCount = 0
+//                } else {
+//                    cejillaPointers = listOf()
+//                }
+//            }
+//
+//            cleanAlignedPointers.forEach {
+//                lastSizes[event.getPointerId(it)] = event.getSize(it)
+//            }
+//        } else {
+//            resetCejillaVariables()
+//        }
+    }
+
+    private fun twoAligned(
+        touches1: Map<Int, TouchInfo>,
+        touches2: Map<Int, TouchInfo>
+    ): Pair<Int, Int>? {
+        for (t1 in touches1) {
+            for (t2 in touches2) {
+                if (abs(t1.value.y - t2.value.y) <= 150) {
+                    return Pair(t1.key, t2.key)
+                }
+            }
+        }
+        return null
     }
 
     private fun medirMuestreoNano() {
@@ -396,13 +408,14 @@ class MainActivity : FullscreenActivity() {
     }
 
     private fun resetCejillaVariables() {
-        lastSizes.clear()
-        lastJitters.clear()
-        lastCejillas.clear()
-        cejillaPointers = listOf()
+//        lastSizes.clear()
+//        lastJitters.clear()
+//        lastCejillas.clear()
+        cejillaPointers.clear()
     }
 
-    private fun tieneCejilla() = lastCejillas.size > 10 && lastCejillas.count { it } > lastCejillas.count { !it }
+    private fun tieneCejilla() =
+        tieneCejilla //lastCejillas.size > 10 && lastCejillas.count { it } > lastCejillas.count { !it }
 
     private fun isTouchingViewOnXAxis(touch: TouchInfo, view: View): Boolean {
         var location = IntArray(2)
@@ -489,7 +502,8 @@ class MainActivity : FullscreenActivity() {
         val cejillaTouch = cejillaPointers.firstOrNull()
         val touchesToRemove = arrayListOf<Int>() // touchView.removedTouches
 
-        val bufferSize = 28 * touchesToAdd.size + 8 * touchesToRemove.size + if (cejillaTouch != null) 28 else 0
+        val bufferSize =
+            28 * touchesToAdd.size + 8 * touchesToRemove.size + if (cejillaTouch != null) 28 else 0
 
         val buff =
             ByteBuffer.allocate(
