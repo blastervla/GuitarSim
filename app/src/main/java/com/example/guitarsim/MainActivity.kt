@@ -1,5 +1,6 @@
 package com.example.guitarsim
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.content.Intent
 import android.graphics.Color
@@ -30,36 +31,30 @@ class MainActivity : FullscreenActivity() {
         const val TIEMPO_MUESTREO_MILLIS: Long = 10
     }
 
-    val scaleLengthMm: Double
+    private val scaleLengthMm: Double
         get() = SharedPrefsUtils(this).getScaleLength().toDouble()
 
-    val fretAmount: Int
+    private val fretAmount: Int
         get() = SharedPrefsUtils(this).getFretAmount()
 
-    val nodeAmount: Int
+    private val nodeAmount: Int
         get() = SharedPrefsUtils(this).getNodeAmount()
 
-    val shouldEnumerateFrets: Boolean
+    private val shouldEnumerateFrets: Boolean
         get() = SharedPrefsUtils(this).shouldEnumerateFrets()
 
-    //    val lastSizes = hashMapOf<Int, Float>()
-//    val lastJitters = ConcurrentLinkedQueue<Float>()
-//    val lastCejillas = ConcurrentLinkedQueue<Boolean>()
-    var cejillaPointers = arrayListOf<Int>()
+    private var cejillaPointers = arrayListOf<Int>()
 
-    //    var nonCejillaCount = 0
-    var tieneCejilla = false
+    private var tieneCejilla = false
 
-    /* var */ val viewPortBeginPx: Int
+    private val viewPortBeginPx: Int
         get() = ViewUtils.mmToPx(
             SharedPrefsUtils(this).getViewportLocation().toDouble()
-        ) // TODO: Make dynamic
-    val viewPortEndPx: Int
+        )
+    private val viewPortEndPx: Int
         get() = viewPortBeginPx + ViewUtils.getScreenHeight(this)
-    val guitarScalePx
-        get() = ViewUtils.mmToPx(scaleLengthMm)
 
-    val guitarUtils by lazy { GuitarUtils(scaleLengthMm, fretAmount) }
+    private val guitarUtils by lazy { GuitarUtils(scaleLengthMm, fretAmount) }
 
     var shakeDetector: ShakeDetector? = null
 
@@ -73,10 +68,10 @@ class MainActivity : FullscreenActivity() {
     var minNanoTimeSinceLastEvent: Long = 0L
     var lastEventNanoTime: Long = 0L
 
-    val MILI_SEC: Long = 1000L
-    val MICRO_SEC: Long = 1000L * MILI_SEC
-    val NANO_SEC: Long = 1000L * MICRO_SEC
-    val PERIODO_MEDICION: Long = 10L * NANO_SEC
+    private val MILI_SEC: Long = 1000L
+    private val MICRO_SEC: Long = 1000L * MILI_SEC
+    private val NANO_SEC: Long = 1000L * MICRO_SEC
+    private val PERIODO_MEDICION: Long = 10L * NANO_SEC
     /* ============= MEDICION DE MUESTREO ============= */
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -84,14 +79,10 @@ class MainActivity : FullscreenActivity() {
         setContentView(R.layout.activity_main)
         setShakeRecognizer()
         initUsbConnection()
-
-//        aoaBridge = AOAManager2(this, intent)
-//        aoaBridge?.startListening()
     }
 
     private fun setShakeRecognizer() {
         shakeDetector = ShakeDetector(getSystemService(Context.SENSOR_SERVICE) as SensorManager) {
-            //            Toast.makeText(this, "Accel: ${shakeDetector?.mAccel}", Toast.LENGTH_SHORT).show()
             startActivity(Intent(this, SettingsActivity::class.java))
         }
     }
@@ -132,11 +123,11 @@ class MainActivity : FullscreenActivity() {
         aoaManager.disconnect()
     }
 
+    @SuppressLint("SetTextI18n")
     private fun updateView() {
         touchView.invalidate()
 
-        // Check collisions here
-        testText.text = if (tieneCejilla()) "Cejilla\n" else "\n"
+        testText.text = if (tieneCejilla) "Cejilla\n" else "\n"
 
         var touchingEMString = false
         var touchingAString = false
@@ -233,7 +224,7 @@ class MainActivity : FullscreenActivity() {
             }
             MotionEvent.ACTION_UP -> {
                 touchView.removeAllTouches()
-                resetCejillaVariables()
+                cejillaPointers.clear()
             }
             MotionEvent.ACTION_DOWN, MotionEvent.ACTION_POINTER_DOWN -> {
                 touchView.touches[pointerId] = TouchInfo(
@@ -257,19 +248,14 @@ class MainActivity : FullscreenActivity() {
             }
         }
 
-        when {
-            event.pointerCount >= 2 -> processCejilla(/*event*/)
-//            nonCejillaCount >= 10 -> {
-//                resetCejillaVariables()
-//                nonCejillaCount = 0
-//            }
-//            else -> nonCejillaCount++
+        if (event.pointerCount >= 2) {
+            processCejilla()
         }
 
         return true
     }
 
-    private fun processCejilla(/*event: MotionEvent*/) {
+    private fun processCejilla() {
         val emPresses = touchView.touches.filter { isTouchingViewOnXAxis(it.value, emString) }
         val eMPresses = touchView.touches.filter { isTouchingViewOnXAxis(it.value, eMString) }
         val alignedPresses = twoAligned(emPresses, eMPresses)
@@ -278,92 +264,6 @@ class MainActivity : FullscreenActivity() {
             cejillaPointers.add(alignedPresses.first)
             cejillaPointers.add(alignedPresses.second)
         }
-        return
-
-//        val pointerIndexes = (0 until event.pointerCount)
-//        val alignedPointers = pointerIndexes.filter { pointA ->
-//            val others = pointerIndexes.filter { pointB ->
-//                pointB != pointA && abs(event.getY(pointA) - event.getY(pointB)) <= 150
-//            }
-//            others.isNotEmpty()
-//        }
-//
-//        val cleanAlignedPointers = alignedPointers.filter {
-//            abs(event.getY(alignedPointers.first()) - event.getY(it)) <= 150
-//        }
-//
-//        val hasAlignedTouches = cleanAlignedPointers.isNotEmpty()
-//
-//        if (hasAlignedTouches) {
-//            cejillaPointers = cleanAlignedPointers.map { event.getPointerId(it) }
-//
-//            val sizeSum = cleanAlignedPointers.map { event.getSize(it) }.reduce { acc, i ->
-//                abs(
-//                    acc - i
-//                )
-//            }
-//            val pressureSum = cleanAlignedPointers.map { event.getPressure(it) }.reduce { acc, i ->
-//                abs(
-//                    acc - i
-//                )
-//            }
-//    /*                testText.text =
-//                        if (hasAlignedTouches && sizeSum < 0.13 && pressureSum < 0.13) "Tiene cejilla" else "Sin cejilla"*/
-//
-//            val hasPreviousXsForAligned =
-//                lastSizes.filter {
-//                    cleanAlignedPointers.map { event.getPointerId(it) }.contains(
-//                        it.key
-//                    )
-//                }
-//                    .isNotEmpty()
-//            if (hasPreviousXsForAligned) {
-//                val entriesToRemove = arrayListOf<Int>()
-//                lastJitters.add(lastSizes.map { entry ->
-//                    val id = entry.key
-//                    val lastSize = entry.value
-//
-//                    val pointerIndex = event.findPointerIndex(id)
-//                    if (pointerIndex == -1) {
-//                        entriesToRemove.add(entry.key)
-//                        0f
-//                    } else {
-//                        val currentSize = event.getSize(pointerIndex)
-//                        abs(currentSize - lastSize)
-//                    }
-//                }.sum())
-//
-//                if (lastJitters.size > 100) {
-//                    lastJitters.remove()
-//                }
-//
-//                val tieneCejilla = pressureSum < 0.5 && (lastJitters.max() ?: 0f) >= 0.03
-//                lastCejillas.add(tieneCejilla)
-//                if (lastCejillas.size > 50) {
-//                    lastCejillas.remove()
-//                }
-//
-//                /*testText.text =
-//                        "${testText.text}\nJitter = ${lastJitters.max()}\nSize sum: $sizeSum\nPressure sum: $pressureSum"*/
-//
-//                // Clean no longer used positions
-//                entriesToRemove.forEach {
-//                    lastSizes.remove(it)
-//                }
-//
-//                if (tieneCejilla()) {
-//                    nonCejillaCount = 0
-//                } else {
-//                    cejillaPointers = listOf()
-//                }
-//            }
-//
-//            cleanAlignedPointers.forEach {
-//                lastSizes[event.getPointerId(it)] = event.getSize(it)
-//            }
-//        } else {
-//            resetCejillaVariables()
-//        }
     }
 
     private fun twoAligned(
@@ -407,18 +307,8 @@ class MainActivity : FullscreenActivity() {
         }
     }
 
-    private fun resetCejillaVariables() {
-//        lastSizes.clear()
-//        lastJitters.clear()
-//        lastCejillas.clear()
-        cejillaPointers.clear()
-    }
-
-    private fun tieneCejilla() =
-        tieneCejilla //lastCejillas.size > 10 && lastCejillas.count { it } > lastCejillas.count { !it }
-
     private fun isTouchingViewOnXAxis(touch: TouchInfo, view: View): Boolean {
-        var location = IntArray(2)
+        val location = IntArray(2)
         view.getLocationOnScreen(location)
 
         val xLocation = location.first()
@@ -491,11 +381,6 @@ class MainActivity : FullscreenActivity() {
     }
 
     /* =============== USB Connection Handler =============== */
-//    override fun run() {
-//        while (isInForeground) {
-//
-//        }
-//    }
     private fun handleUsbConnection() {
         val touchesToAdd =
             touchView.touches.keys.filter { !cejillaPointers.contains(it) && getChord(touchView.touches[it]) != -1 }
@@ -512,10 +397,6 @@ class MainActivity : FullscreenActivity() {
         buff.order(ByteOrder.LITTLE_ENDIAN)
 
         // Remove old touches
-        /*for (touchId in touchesToRemove) {
-            buff.putInt(0x3) // Command: Finger remove
-            buff.putInt(touchId)
-        }*/
         touchView.removedTouches.clear()
 
         // Add new touches
@@ -552,11 +433,6 @@ class MainActivity : FullscreenActivity() {
         }
 
         aoaManager.write(buff.array())
-        /*try {
-            Thread.sleep(500)
-        } catch (e: InterruptedException) {
-            e.printStackTrace()
-        }*/
     }
     /* =============== USB Connection Handler =============== */
 
