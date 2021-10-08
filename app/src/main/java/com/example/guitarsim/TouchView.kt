@@ -25,10 +25,8 @@ class TouchView(context: Context, attributes: AttributeSet? = null) : View(conte
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
 
-        touches.forEach { entry ->
-            entry.value.let {
-                canvas.drawOval(it.startX, it.startY, it.endX, it.endY, tapPaint)
-            }
+        touches.values.forEach {
+            canvas.drawOval(it.startX, it.startY, it.endX, it.endY, tapPaint)
         }
     }
 
