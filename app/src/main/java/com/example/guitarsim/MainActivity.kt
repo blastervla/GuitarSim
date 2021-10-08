@@ -16,7 +16,7 @@ import android.view.View.MeasureSpec
 import android.widget.FrameLayout
 import android.widget.TextView
 import androidx.core.content.ContextCompat
-import com.example.guitarsim.connectivity.working.AOAManager
+import com.example.guitarsim.connectivity.AOAManager
 import com.example.guitarsim.data.TouchInfo
 import com.example.guitarsim.utils.*
 import kotlinx.android.synthetic.main.activity_main.*
