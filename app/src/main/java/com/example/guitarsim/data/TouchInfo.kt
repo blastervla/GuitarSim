@@ -1,6 +1,8 @@
 package com.example.guitarsim.data
 
+import android.util.DisplayMetrics
 import kotlin.math.max
+
 
 class TouchInfo(
     var x: Float,
@@ -9,12 +11,12 @@ class TouchInfo(
     var pressure: Float,
     var size: Float
 ) {
-    val FINGER_HEIGHT = 100
+    val FINGER_HEIGHT = 75
 
     val xSize
-        get() = max(size * 2500, FINGER_HEIGHT + size * 1100)
+        get() = max(size * 2500, FINGER_HEIGHT + size * 2000)
     val ySize
-        get() = (FINGER_HEIGHT + size * 1100)
+        get() = (FINGER_HEIGHT + size * 2000)
 
     val startX
         get() = x - xSize / 2
