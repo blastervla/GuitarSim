@@ -138,7 +138,7 @@ class MainActivity : FullscreenActivity() {
 
 //        medirMuestreoPantalla() // Uncomment to sample latency
 //        mostrarTouchesViolentamente()
-//        medirValoresDePresion()
+        medirValoresDePresion()
 
         touchView.touches.entries.filter { !cejillaPointers.contains(it.key) }.map { it.value }
             .forEach {
@@ -168,9 +168,14 @@ class MainActivity : FullscreenActivity() {
         }
     }
 
+    var addedSeparator = false
     private fun medirValoresDePresion() {
         touchView.touches.entries.firstOrNull { true }?.let {
             Log.v("PRESSURE_TEST_RESULTS", it.value.pressure.toString())
+            addedSeparator = false
+        } ?: if (!addedSeparator) {
+            Log.v("PRESSURE_TEST_RESULTS", "===========================================")
+            addedSeparator = true
         }
     }
 
@@ -183,28 +188,31 @@ class MainActivity : FullscreenActivity() {
     }
 
     var lastTouch = 0f
-    var totalCount: Int = 1
-    var sameCount: Int = 0
-    var differentCount: Int = -1
+    var totalCount: Array<Int> = arrayOf(1, 1, 1)
+    var sameCount: Array<Int> = arrayOf(-1, -1, -1)
+    var differentCount: Array<Int> = arrayOf(-1, -1, -1)
     val SAMPLE_SIZE = 1000
     private fun medirMuestreoPantalla() {
-        if (sameCount + differentCount < SAMPLE_SIZE) {
-            touchView.touches.entries.firstOrNull { true }?.let {
-                if (it.value.y == lastTouch) {
-                    sameCount++
-                } else {
-                    differentCount++
+        for (i in 0 until sameCount.size) {
+            if (sameCount[i] + differentCount[i] < SAMPLE_SIZE) {
+                if (touchView.touches.entries.isEmpty()) break
+                touchView.touches.entries.toList()[i].let {
+                    if (it.value.y == lastTouch) {
+                        sameCount[i]++
+                    } else {
+                        differentCount[i]++
+                    }
+                    lastTouch = it.value.y
                 }
-                lastTouch = it.value.y
+            } else {
+                Log.v(
+                    "LATENCY_SAMPLE_RESULTS",
+                    "$TIEMPO_MUESTREO_MILLIS ms [$i][${totalCount[i]}] Latecy sample results: ${sameCount[i]} same vs ${differentCount[i]} different"
+                )
+                sameCount[i] = 0
+                differentCount[i] = 0
+                totalCount[i]++
             }
-        } else {
-            Log.v(
-                "LATENCY_SAMPLE_RESULTS",
-                "$TIEMPO_MUESTREO_MILLIS ms [$totalCount] Latecy sample results: $sameCount same vs $differentCount different"
-            )
-            sameCount = 0
-            differentCount = 0
-            totalCount++
         }
     }
 
